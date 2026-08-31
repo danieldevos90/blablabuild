@@ -18,7 +18,7 @@ Korte checklist zodat je lokaal kunt werken en niets kapotmaakt bij uploaden.
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000).
+   Open [http://localhost:3002](http://localhost:3002) (NL) of [http://localhost:3002/en](http://localhost:3002/en).
 
 ## Voor je pusht (uploaden)
 
@@ -32,16 +32,23 @@ Dat doet: `type-check` → `lint` → `build`. Als alles groen is, kun je commit
 
 ## Git workflow
 
-- **Remote:** `origin` wijst naar `https://github.com/danieldevos90/blablabuild.git`
-- **Branch:** werk op `main` of maak een feature-branch
-- **Eerste push** (als je lokaal begon vanaf een ZIP):
-  ```bash
-  git add -A
-  git status   # controleer dat er GEEN .env of .env.vercel tussen staat
-  git commit -m "Beschrijving van je wijzigingen"
-  git push -u origin main
-  ```
-- **Volgende keren:** `git add` → `git commit` → `git push`
+- **Origin:** `https://github.com/blablabuildteam/blablabuild.git` — hier pushen we naartoe
+- **Vercel:** bestaand project **blablabuild** blijft staan; alleen de gekoppelde GitHub-repo wijzigen
+
+### Dagelijkse flow
+
+```bash
+git add -A
+git status   # controleer dat er GEEN .env of .env.vercel tussen staat
+git commit -m "Beschrijving van je wijzigingen"
+git push origin main
+```
+
+### GitHub in Vercel omhangen (eenmalig)
+
+Vercel → project **blablabuild** → **Settings → Git** → disconnect oude repo (`danieldevos90/blablabuild`) → connect `blablabuildteam/blablabuild` → branch `main`.
+
+Repo niet zichtbaar? [Vercel GitHub App](https://github.com/apps/vercel) → toegang geven tot `blablabuildteam`.
 
 ## Wat we niet meenemen (staat in .gitignore)
 

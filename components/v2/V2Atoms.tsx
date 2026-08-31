@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ReactNode } from 'react';
+import { Children, ReactNode, useEffect, useState } from 'react';
 
 /**
  * V2 ATOMS — herbruikbare bouwstenen die de "Studio Industrial" look dragen.
@@ -39,26 +39,24 @@ export function GridLayer({ className = '' }: { className?: string }) {
   );
 }
 
+/** Quiet section intro — sentence case, no mono/uppercase (Northlane-style). */
 export function SectionLabel({
-  index,
   label,
   tone = 'light',
   className = '',
+  index: _index,
 }: {
-  index: string;
   label: string;
   tone?: 'light' | 'dark';
   className?: string;
+  /** @deprecated ignored — kept so existing call sites compile */
+  index?: string;
 }) {
-  const colorPrimary = tone === 'dark' ? 'text-bla-dark' : 'text-bla-white';
-  const colorMuted = tone === 'dark' ? 'text-bla-dark/45' : 'text-white/45';
-  const dot = tone === 'dark' ? 'bg-bla-dark/30' : 'bg-white/30';
+  const color = tone === 'dark' ? 'text-[#14181d]/50' : 'text-white/50';
   return (
-    <div className={`flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.28em] ${className}`}>
-      <span className={`${colorMuted}`}>§ {index}</span>
-      <span className={`h-px w-8 ${dot}`} />
-      <span className={`${colorPrimary} font-medium`}>{label}</span>
-    </div>
+    <p className={`font-host text-[15px] leading-snug md:text-base ${color} ${className}`}>
+      {label}
+    </p>
   );
 }
 
@@ -140,29 +138,52 @@ export function MarqueeStrip({
   className?: string;
   fade?: boolean;
 }) {
+  const [cycleKey, setCycleKey] = useState(0);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const onResize = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setCycleKey((k) => k + 1), 120);
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  const items = Children.toArray(children);
+  const duplicated = [...items, ...items];
+
   const fadeStyle = fade
     ? {
         maskImage:
-          'linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)',
+          'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
         WebkitMaskImage:
-          'linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)',
+          'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
       }
     : undefined;
+
   return (
     <div
-      className={`relative w-full overflow-hidden whitespace-nowrap ${className}`}
+      className={`relative w-full overflow-x-hidden overflow-y-hidden ${className}`}
       style={fadeStyle}
     >
       <div
-        className="flex w-max items-center"
-        style={{ animation: `marquee-scroll ${speed}s linear infinite` }}
+        key={cycleKey}
+        className="flex w-max shrink-0 items-center"
+        style={{
+          gap: `${gap}px`,
+          animation: `marquee-scroll ${speed}s linear infinite`,
+          willChange: 'transform',
+        }}
       >
-        <div className="flex shrink-0 items-center" style={{ gap: `${gap}px`, paddingRight: `${gap}px` }}>
-          {children}
-        </div>
-        <div className="flex shrink-0 items-center" style={{ gap: `${gap}px`, paddingRight: `${gap}px` }} aria-hidden>
-          {children}
-        </div>
+        {duplicated.map((item, index) => (
+          <div key={`${cycleKey}-${index}`} className="flex shrink-0 items-center">
+            {item}
+          </div>
+        ))}
       </div>
     </div>
   );

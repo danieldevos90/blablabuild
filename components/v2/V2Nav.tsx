@@ -10,6 +10,7 @@ import {
   buildLocaleSwitchPath,
   saveScrollForLocaleSwitch,
 } from '@/lib/localeSwitch';
+import { smoothScrollToId } from '@/lib/utils';
 import type { Locale } from '@/i18n/request';
 
 interface V2NavProps {
@@ -49,13 +50,23 @@ export default function V2Nav({ activeSection = '' }: V2NavProps) {
     return () => window.removeEventListener('scroll', onScroll);
   }, [isMobile]);
 
+  const homeBase = locale === 'en' ? '/en' : '/';
+  const onSubpage = pathname.includes('/cases');
+
   const scrollToSection = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
-    const el = document.getElementById(id);
-    if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - 96;
-    window.scrollTo({ top, behavior: 'smooth' });
+    if (onSubpage) {
+      window.location.href = `${homeBase}#${id}`;
+      setIsMenuOpen(false);
+      return;
+    }
+    smoothScrollToId(id);
     setIsMenuOpen(false);
+  };
+
+  const sectionHref = (id: string) => {
+    if (onSubpage) return `${homeBase}#${id}`;
+    return `#${id}`;
   };
 
   const switchLocale = (e: React.MouseEvent) => {
@@ -106,7 +117,7 @@ export default function V2Nav({ activeSection = '' }: V2NavProps) {
               return (
                 <a
                   key={s.id}
-                  href={`#${s.id}`}
+                  href={sectionHref(s.id)}
                   onClick={scrollToSection(s.id)}
                   className={`relative rounded-full px-3.5 py-2 text-sm tracking-tight transition-colors ${
                     active ? 'text-bla-lime' : 'text-white/70 hover:text-white'
@@ -175,7 +186,7 @@ export default function V2Nav({ activeSection = '' }: V2NavProps) {
               {NAV_SECTIONS.map((s) => (
                 <a
                   key={s.id}
-                  href={`#${s.id}`}
+                  href={sectionHref(s.id)}
                   onClick={scrollToSection(s.id)}
                   className="block rounded-xl px-4 py-3 font-host text-2xl font-light text-white"
                 >

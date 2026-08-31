@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, ChevronRight, ArrowLeft, BarChart3, Copy, Check, Users, RefreshCw, Info, Share2, Download, Trophy, AlertTriangle, Star, Code2, ClipboardCheck, HelpCircle } from 'lucide-react';
+import { Plus, X, ChevronRight, ArrowLeft, BarChart3, Copy, Check, Users, RefreshCw, Info, Share2, Download, Trophy, AlertTriangle, Star, Code2, ClipboardCheck, HelpCircle, ListOrdered, Map as MapIcon } from 'lucide-react';
 import ClaudeCasesView from './ClaudeCasesView';
 import ReviewView from './ReviewView';
+import PrioritizeView from './PrioritizeView';
+import RoadmapView from './RoadmapView';
 
 /** Internal normalize/review UI — local `npm run dev` only, never on shared/production URLs */
 const SHOW_REVIEW = process.env.NODE_ENV === 'development';
@@ -12,8 +14,15 @@ const SHOW_REVIEW = process.env.NODE_ENV === 'development';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type QuadrantKey = 'quick' | 'strategic' | 'low' | 'later';
-type View = 'landing' | 'matrix' | 'add' | 'workshop' | 'results' | 'claude' | 'review';
+type View = 'landing' | 'matrix' | 'add' | 'workshop' | 'results' | 'claude' | 'review' | 'prioritize' | 'roadmap';
 type ClaudeFit = 'good' | 'stretch' | 'blocked';
+type PriorityStatus = 'now' | 'near' | 'next' | 'later' | 'kill';
+type DeliveryPartner =
+  | 'adsomnia'
+  | 'blablabuild'
+  | 'harlem-next'
+  | 'bending-the-rules'
+  | 'tbd';
 
 interface Scores {
   businessImpact: number;
@@ -52,6 +61,9 @@ interface UseCase {
   howToGuide?: string;
   definitionOfDone?: string;
   claudeReviewedByBlaBlaBuild?: boolean;
+  priorityRank?: number;
+  priorityStatus?: PriorityStatus;
+  deliveryPartners?: DeliveryPartner[];
   originalInput?: {
     name?: string;
     description?: string;
@@ -550,7 +562,7 @@ export default function AiMatrixTool() {
 
   const updateUseCase = async (uc: UseCase) => {
     setUseCases((prev) => {
-      const next = sortUseCasesByScore(prev.map((row) => (row.id === uc.id ? uc : row)));
+      const next = prev.map((row) => (row.id === uc.id ? { ...row, ...uc } : row));
       writeLocal(sessionId, next);
       return next;
     });
@@ -565,9 +577,17 @@ export default function AiMatrixTool() {
       if (data.kv && data.useCases) {
         knownIdsRef.current = new Set((data.useCases as UseCase[]).map((u) => u.id));
         setStorageMode('sync');
-        const sorted = sortUseCasesByScore(data.useCases as UseCase[]);
-        setUseCases(sorted);
-        writeLocal(sessionId, sorted);
+        // Merge by id — preserve local order (priority ranks live on each case)
+        setUseCases((prev) => {
+          const byId = new Map((data.useCases as UseCase[]).map((u) => [u.id, u]));
+          const merged = prev.map((row) => byId.get(row.id) ?? row);
+          const prevIds = new Set(prev.map((r) => r.id));
+          for (const u of data.useCases as UseCase[]) {
+            if (!prevIds.has(u.id)) merged.push(u);
+          }
+          writeLocal(sessionId, merged);
+          return merged;
+        });
       } else {
         setStorageMode('local');
       }
@@ -575,6 +595,15 @@ export default function AiMatrixTool() {
       setStorageMode('local');
     }
   };
+
+  const replaceAllUseCases = useCallback((cases: UseCase[]) => {
+    // Never wipe a populated board with an empty replace
+    if (cases.length === 0) return;
+    knownIdsRef.current = new Set(cases.map((u) => u.id));
+    setUseCases(cases);
+    writeLocal(sessionId, cases);
+    setLastUpdated(new Date());
+  }, [sessionId]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -1736,6 +1765,16 @@ export default function AiMatrixTool() {
                   <Code2 className="h-3 w-3" />
                   <span className="hidden sm:inline">Claude Cases</span>
                 </button>
+                <button onClick={() => setView('prioritize')}
+                  className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-xs transition-colors ${view === 'prioritize' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}>
+                  <ListOrdered className="h-3 w-3" />
+                  <span className="hidden sm:inline">Prioritize</span>
+                </button>
+                <button onClick={() => setView('roadmap')}
+                  className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-xs transition-colors ${view === 'roadmap' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}>
+                  <MapIcon className="h-3 w-3" />
+                  <span className="hidden sm:inline">Roadmap</span>
+                </button>
                 {SHOW_REVIEW && (
                   <button onClick={() => setView('review')}
                     className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-xs transition-colors ${view === 'review' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}>
@@ -1795,6 +1834,22 @@ export default function AiMatrixTool() {
             {view === 'results'   && ResultsView}
             {view === 'claude'    && (
               <ClaudeCasesView useCases={useCases} onBack={() => setView('matrix')} onUpdate={updateUseCase} />
+            )}
+            {view === 'prioritize' && (
+              <PrioritizeView
+                useCases={useCases}
+                sessionId={sessionId}
+                onBack={() => setView('matrix')}
+                onUpdate={updateUseCase}
+                onReplaceAll={replaceAllUseCases}
+              />
+            )}
+            {view === 'roadmap' && (
+              <RoadmapView
+                useCases={useCases}
+                onBack={() => setView('matrix')}
+                onGoPrioritize={() => setView('prioritize')}
+              />
             )}
             {SHOW_REVIEW && view === 'review' && (
               <ReviewView useCases={useCases} onBack={() => setView('matrix')} onUpdate={updateUseCase} />

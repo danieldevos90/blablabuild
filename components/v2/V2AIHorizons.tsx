@@ -1,8 +1,8 @@
 'use client';
 
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, FileBarChart, FileSpreadsheet, FileType, Pause, Play, Sparkles, Upload } from 'lucide-react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { BookOpen, ChevronRight, FileBarChart, FileSpreadsheet, FileType, Pause, Play, Sparkles, Upload } from 'lucide-react';
 
 interface HorizonStage {
   id: string;
@@ -131,6 +131,7 @@ export default function V2AIHorizons({ lang }: V2AIHorizonsProps) {
   const [activeStage, setActiveStage] = useState(0);
   const [paused, setPaused] = useState(false);
   const stages = lang === 'en' ? STAGES_EN : STAGES_NL;
+  const activeStageData = stages[activeStage];
 
   return (
     <motion.div
@@ -140,13 +141,15 @@ export default function V2AIHorizons({ lang }: V2AIHorizonsProps) {
       transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
       className="mt-10 border-t border-[#14181d]/10 pt-10 md:mt-14 md:pt-14"
     >
-      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
-        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#14181d]/40">
+      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+        <h3 className="font-host text-xl font-light text-[#14181d] md:text-2xl">
           {lang === 'en' ? 'The four stages of AI transformation' : 'De vier fases van AI-transformatie'}
-        </div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-[#14181d]/35">
-          {lang === 'en' ? '↳ select a stage to explore' : '↳ kies een fase om te verkennen'}
-        </div>
+        </h3>
+        <p className="font-host text-sm text-[#14181d]/45">
+          {lang === 'en'
+            ? `Showing: ${activeStageData.title}`
+            : `Nu: ${activeStageData.title}`}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:gap-5 md:items-stretch">
@@ -156,7 +159,7 @@ export default function V2AIHorizons({ lang }: V2AIHorizonsProps) {
             const isActive = i === activeStage;
             return (
               <Fragment key={stage.id}>
-                <motion.div
+                <div
                   role="button"
                   tabIndex={0}
                   aria-pressed={isActive}
@@ -172,14 +175,10 @@ export default function V2AIHorizons({ lang }: V2AIHorizonsProps) {
                     setActiveStage(i);
                     setPaused(false);
                   }}
-                  initial={{ opacity: 0, y: 12 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.45, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                  className={`group flex w-full cursor-pointer items-start gap-3 rounded-2xl border px-4 py-4 text-left transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14181d]/20 md:flex-1 md:px-5 ${
+                  className={`group flex w-full cursor-pointer items-start gap-3 rounded-2xl border px-4 py-4 text-left transition-[border-color,background-color,box-shadow,color] duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14181d]/20 md:flex-1 md:px-5 ${
                     isActive
                       ? 'border-[#14181d] bg-white shadow-[0_18px_40px_-24px_rgba(20,24,29,0.35)]'
-                      : 'border-[#14181d]/10 bg-white/70 hover:border-[#14181d]/25 hover:bg-white'
+                      : 'border-[#14181d]/10 bg-white hover:border-[#14181d]/25'
                   }`}
                 >
                   <span
@@ -217,35 +216,62 @@ export default function V2AIHorizons({ lang }: V2AIHorizonsProps) {
                           ? lang === 'en' ? 'Play animation' : 'Animatie afspelen'
                           : lang === 'en' ? 'Pause animation' : 'Animatie pauzeren'
                       }
-                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#14181d] bg-[#14181d] text-bla-lime transition-transform duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14181d]/25"
+                      className="relative mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center overflow-visible rounded-full border border-[#14181d] bg-[#14181d] text-bla-lime transition-transform duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14181d]/25"
                     >
+                      {!paused && (
+                        <span className="pointer-events-none absolute left-1/2 top-1/2 h-[30px] w-[30px] -translate-x-1/2 -translate-y-1/2">
+                          <svg
+                            aria-hidden
+                            viewBox="0 0 28 28"
+                            className="h-full w-full animate-[spin_1.4s_linear_infinite] motion-reduce:animate-none"
+                          >
+                            <circle
+                              cx="14"
+                              cy="14"
+                              r="12.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeOpacity="0.22"
+                              strokeWidth="1.5"
+                            />
+                            <circle
+                              cx="14"
+                              cy="14"
+                              r="12.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.75"
+                              strokeLinecap="round"
+                              strokeDasharray="16 63"
+                              className="motion-reduce:hidden"
+                            />
+                          </svg>
+                        </span>
+                      )}
                       {paused ? (
-                        <Play className="h-2.5 w-2.5 fill-current" />
+                        <Play className="relative h-2.5 w-2.5 fill-current" />
                       ) : (
-                        <Pause className="h-2.5 w-2.5 fill-current" />
+                        <Pause className="relative h-2.5 w-2.5 fill-current" />
                       )}
                     </button>
                   ) : (
                     <span
                       className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#14181d]/15 transition-colors duration-300 group-hover:border-[#14181d]/30"
+                      aria-hidden
                     >
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#14181d]/20 transition-colors duration-300 group-hover:bg-[#14181d]/40" />
+                      <ChevronRight className="h-3.5 w-3.5 text-[#14181d]/30 transition-colors duration-300 group-hover:text-[#14181d]/50 md:hidden" />
+                      <span className="hidden h-1.5 w-1.5 rounded-full bg-[#14181d]/20 transition-colors duration-300 group-hover:bg-[#14181d]/40 md:block" />
                     </span>
                   )}
-                </motion.div>
+                </div>
 
                 {/* Mobile: visual appears directly under the active stage */}
                 {isActive && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                    className="md:hidden"
-                  >
+                  <div className="md:hidden">
                     <div className="pt-1 pb-2">
-                      <HorizonVisual stage={activeStage} lang={lang} paused={paused} />
+                      <HorizonVisual stage={i} lang={lang} paused={paused} />
                     </div>
-                  </motion.div>
+                  </div>
                 )}
               </Fragment>
             );
@@ -253,7 +279,7 @@ export default function V2AIHorizons({ lang }: V2AIHorizonsProps) {
         </div>
 
         {/* Desktop: visual panel (hidden on mobile — shown inline above) */}
-        <div className="relative hidden md:col-span-8 md:block lg:col-span-9">
+        <div className="relative hidden min-h-[440px] md:col-span-8 md:block lg:col-span-9">
           <div className="md:absolute md:inset-0">
             <AnimatePresence mode="wait">
               <motion.div
@@ -275,14 +301,25 @@ export default function V2AIHorizons({ lang }: V2AIHorizonsProps) {
 }
 
 function HorizonVisual({ stage, lang, paused }: { stage: number; lang: 'en' | 'nl'; paused: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(containerRef, { amount: 0.25, margin: '0px 0px -60px 0px' });
+  const [playKey, setPlayKey] = useState(0);
+
+  useEffect(() => {
+    if (inView) setPlayKey((key) => key + 1);
+  }, [inView, stage]);
+
   return (
-    <div className="flex min-h-[440px] flex-col overflow-hidden rounded-2xl border border-[#14181d]/20 bg-[#14181d] md:h-full md:min-h-0">
+    <div
+      ref={containerRef}
+      className="flex min-h-[440px] flex-col overflow-hidden rounded-2xl border border-[#14181d]/20 bg-[#14181d] md:h-full md:min-h-0"
+    >
       <AnimatePresence mode="wait">
         <motion.div
-          key={stage}
-          initial={{ opacity: 0, scale: 0.96 }}
+          key={`${stage}-${playKey}`}
+          initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
+          exit={{ opacity: 0, scale: 0.99 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-1 items-center justify-center"
         >
